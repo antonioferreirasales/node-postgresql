@@ -1,42 +1,39 @@
-import { randomUUID } from 'node:crypto'
+import { randomUUID } from "node:crypto";
+import sql from "./db.js";
 // UUID - Universal Unique ID
 
 export class DatabasePostgres {
-  #videos = new Map()
+  async list(search) {
+    let videos;
 
-  // Set, Map
+    if (search) {
+      videos = await sql`SELECT * FROM videos WHERE title ILIKE ${'%' + search + '%'}`;
+    } else {
+      videos = await sql`SELECT * FROM videos`;
+    }
 
-  list(search) {
-    return Array.from(this.#videos.entries())
-      .map((videoArray) => {
-        const id = videoArray[0]
-        const data = videoArray[1]
-
-        return {
-          id,
-          ...data,
-        }
-      })
-      .filter(video => {
-        if (search) {
-          return video.title.includes(search)
-        }
-
-        return true
-      })
+    return videos;
   }
 
-  create(video) {
-    const videoId = randomUUID()
+  async create(video) {
+    const videoId = randomUUID();
+    const { title, description, duration } = video;
 
-    this.#videos.set(videoId,video)
+    await sql`INSERT INTO videos (id, title, description, duration)
+     VALUES (${videoId}, ${title}, ${description}, ${duration})`;
   }
 
-  update (id, video) {
-    this.#videos.set(id, video)
+  async update(id, video) {
+    const videoId = id
+    const { title, description, duration } = video
+
+    await sql`UPDATE videos 
+      SET title = ${title}, description = ${description}, duration = ${duration}
+      WHERE id = ${videoId}`
   }
 
-  delete (id) {
-    this.#videos.delete(id)
+  async delete(id) {
+    const videoId = id
+    await sql`DELETE FROM videos WHERE id = ${videoId}`
   }
 }
